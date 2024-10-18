@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Video Streaming Platform</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.8.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.8.0/firebase-firestore-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.8.0/firebase-auth-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.8.0/firebase-storage-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plyr/3.7.8/plyr.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/plyr/3.7.8/plyr.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary-color: #6366f1;
+            --background-color: #f8fafc;
+            --card-background: #ffffff;
+            --text-color: #1e293b;
+            --text-light: #64748b;
+            --border-color: #e2e8f0;
+            --hover-color: #f1f5f9;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        /* Enhanced Header */
+        .header {
+            background-color: var(--card-background);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .search-bar {
+            flex: 1;
+            max-width: 600px;
+            position: relative;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 9999px;
+            background: var(--background-color);
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+        }
+
+        /* Enhanced Sidebar */
+        .sidebar {
+            width: 280px;
+            position: fixed;
+            height: calc(100vh - 73px);
+            background: var(--card-background);
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .sidebar-menu li {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+        }
+
+        .sidebar-menu li:hover {
+            background-color: var(--hover-color);
+            color: var(--primary-color);
+        }
+
+        .sidebar-menu li.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .sidebar-menu li.active i {
+            color: white;
+        }
+
+        /* Enhanced Video Grid */
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        .video-card {
+            background: var(--card-background);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .video-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .video-thumbnail {
+            position: relative;
+            padding-bottom: 56.25%;
+            background: var(--background-color);
+        }
+
+        .video-thumbnail img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-duration {
+            position: absolute;
+            bottom: 0.5rem;
+            right: 0.5rem;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+        }
+
+        .video-info {
+            padding: 1rem;
+        }
+
+        .video-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .video-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-light);
+            font-size: 0.875rem;
+        }
+
+        .author-avatar {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .video-stats {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-light);
+            font-size: 0.875rem;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Enhanced Upload Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--card-background);
+            border-radius: 1rem;
+            padding: 2rem;
+            width: 90%;
+            max-width: 600px;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-light);
+            transition: color 0.2s;
+        }
+
+        .close-button:hover {
+            color: var(--text-color);
+        }
+
+        /* Enhanced Form Styles */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1rem;
+            padding-right: 2.5rem;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .button-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .button-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .button-secondary {
+            background: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .button-secondary:hover {
+            background: var(--hover-color);
+        }
+
+        /* Enhanced Comments Section */
+        .comments-section {
+            padding: 1.5rem;
+            background: var(--background-color);
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .comment {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .comment-content {
+            flex: 1;
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.25rem;
+        }
+
+        .comment-author {
+            font-weight: 500;
+        }
+
+        .comment-date {
+            color: var(--text-light);
+            font-size: 0.875rem;
+        }
+
+        .comment-text {
+            color: var(--text-color);
+            font-size: 0.875rem;
+        }
+
+        .comment-form {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .comment-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            resize: none;
+            font-size: 0.875rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .content {
+                margin-left: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-wrap: wrap;
+            }
+
+            .search-bar {
+                order: 3;
+                width: 100%;
+                max-width: none;
+            }
+
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading States */
+        .skeleton {
+            background: linear-gradient(
+                90deg,
+                var(--background-color) 25%,
+                var(--hover-color) 50%,
+                var(--background-color) 75%
+            );
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 1100;
+        }
+
+        .toast {
+            background: var(--card-background);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast-success {
+            border-left: 4px solid #22c55e;
+        }
+
+        .toast-error {
+            border-left: 4px solid #ef4444;
+        }
+
+        
+        /* Video Player Modal */
+        .video-player-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            display: none;
+        }
+
+        .video-player-modal.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .video-player-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .video-info-panel {
+            background: var(--card-background);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        /* Enhanced Comments Section */
+        .comments-section {
+            background: var(--card-background);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .comment-input-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .comment-input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            resize: none;
+        }
+
+        /* Video Grid Loading Skeleton */
+        .skeleton-card {
+            height: 300px;
+            background: var(--card-background);
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+
+        .skeleton-thumbnail {
+            height: 56.25%;
+            background: var(--background-color);
+        }
+
+        .skeleton-info {
+            padding: 1rem;
+        }
+
+        .skeleton-title {
+            height: 24px;
+            width: 80%;
+            background: var(--background-color);
+            margin-bottom: 1rem;
+            border-radius: 0.25rem;
+        }
+
+        .skeleton-meta {
+            height: 40px;
+            width: 60%;
+            background: var(--background-color);
+            border-radius: 0.25rem;
+        }
+
+        /* Video Player Controls */
+        .plyr--video {
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        /* Error Boundary */
+        .error-boundary {
+            padding: 2rem;
+            text-align: center;
+            background: var(--card-background);
+            border-radius: 0.5rem;
+            margin: 1rem;
+        }
+
+        /* Enhanced Toast Notifications */
+        .toast {
+            min-width: 300px;
+            max-width: 500px;
+        }
+
+        /* Drag and Drop Upload Zone */
+        .upload-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 0.5rem;
+            padding: 2rem;
+            text-align: center;
+            margin: 1rem 0;
+            transition: all 0.2s;
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--primary-color);
+            background: var(--hover-color);
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 2px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--primary-color);
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="#" class="logo">
+                <i class="fas fa-play-circle"></i>
+                VideoStream
+            </a>
+            <div class="search-bar">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" placeholder="Search videos..." id="search-input">
+            </div>
+            <div class="user-actions">
+                <button id="login-btn" class="button button-primary">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Login
+                </button>
+                <div id="user-info" style="display: none;" class="user-profile">
+                    <img id="user-avatar" class="author-avatar" src="/api/placeholder/40/40" alt="User avatar">
+                    <span id="user-name"></span>
+                    <button id="logout-btn" class="button button-secondary">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar" id="sidebar">
+            <ul class="sidebar-menu">
+                <li class="active"><i class="fas fa-home"></i> Home</li>
+                <li><i class="fas fa-fire"></i> Trending</li>
+                <li><i class="fas fa-clock"></i> Watch Later</li>
+                <li><i class="fas fa-history"></i> History</li>
+                <li><i class="fas fa-heart"></i> Liked Videos</li>
+                <li><i class="fas fa-folder"></i> My Uploads</li>
+                <li><i class="fas fa-cog"></i> Settings</li>
+            </ul>
+            <button id="add-video-btn" class="button button-primary" style="width: 100%; margin-top: 1rem;">
+                <i class="fas fa-plus"></i>
+                Upload Video
+            </button>
+        </aside>
+
+        <main class="content">
+            <div class="category-filters">
+                <button class="category-tab active">All</button>
+                <button class="category-tab">Technology</button>
+                <button class="category-tab">Entertainment</button>
+                <button class="category-tab">Education</button>
+                <button class="category-tab">Sports</button>
+                <button class="category-tab">Music</button>
+            </div>
+
+            <div class="video-grid" id="video-grid">
+                <!-- Videos will be dynamically added here -->
+            </div>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="upload-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Upload New Video</h2>
+                <button class="close-button" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="upload-form">
+                <div class="form-group">
+                    <label class="form-label" for="video-title">Title</label>
+                    <input type="text" id="video-title" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="video-description">Description</label>
+                    <textarea id="video-description" class="form-input" rows="4"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="video-embed-url">Video URL</label>
+                    <input type="text" id="video-embed-url" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="video-category">Category</label>
+                    <select id="video-category" class="form-input form-select">
+                        <option value="technology">Technology</option>
+                        <option value="entertainment">Entertainment</option>
+                        <option value="education">Education</option>
+                        <option value="sports">Sports</option>
+                        <option value="music">Music</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="video-thumbnail">Thumbnail</label>
+                    <input type="file" id="video-thumbnail" class="form-input" accept="image/*">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="button button-primary">
+                        <i class="fas fa-upload"></i>
+                        Upload
+                    </button>
+                    <button type="button" class="button button-secondary" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- New Video Player Modal -->
+    <div class="video-player-modal" id="video-player-modal">
+        <div class="video-player-container">
+            <div class="plyr__video-embed" id="player">
+                <iframe
+                    src=""
+                    allowfullscreen
+                    allowtransparency
+                    allow="autoplay"
+                ></iframe>
+            </div>
+            <div class="video-info-panel">
+                <h2 id="player-video-title"></h2>
+                <div class="video-meta" id="player-video-meta"></div>
+                <div class="video-description" id="player-video-description"></div>
+            </div>
+            <div class="comments-section">
+                <div class="comment-input-container">
+                    <textarea 
+                        class="comment-input" 
+                        placeholder="Add a comment..."
+                        id="comment-input"
+                    ></textarea>
+                    <button class="button button-primary" id="post-comment-btn">
+                        Post
+                    </button>
+                </div>
+                <div id="comments-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAn_7WIbAIAO1tgGKVGaYNuYv2O6oOAJ6I",
+            authDomain: "web-test-8c060.firebaseapp.com",
+            projectId: "web-test-8c060",
+            storageBucket: "web-test-8c060.appspot.com",
+            messagingSenderId: "1095192380760",
+            appId: "1:1095192380760:web:6e594d79e1bc6273acd12d"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const storage = firebase.storage();
+
+        // DOM Elements
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userInfo = document.getElementById('user-info');
+        const userAvatar = document.getElementById('user-avatar');
+        const userName = document.getElementById('user-name');
+        const addVideoBtn = document.getElementById('add-video-btn');
+        const uploadModal = document.getElementById('upload-modal');
+        const uploadForm = document.getElementById('upload-form');
+        const videoGrid = document.getElementById('video-grid');
+        const searchInput = document.getElementById('search-input');
+        const sidebar = document.getElementById('sidebar');
+        const categoryTabs = document.querySelectorAll('.category-tab');
+
+        // Toast Notification System
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+            document.getElementById('toast-container').appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Auth state observer
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                loginBtn.style.display = 'none';
+                userInfo.style.display = 'flex';
+                userAvatar.src = user.photoURL || '/api/placeholder/40/40';
+                userName.textContent = user.displayName;
+                addVideoBtn.style.display = 'block';
+                showToast(`Welcome back, ${user.displayName}!`);
+            } else {
+                loginBtn.style.display = 'flex';
+                userInfo.style.display = 'none';
+                addVideoBtn.style.display = 'none';
+            }
+        });
+
+        // Login with Google
+        loginBtn.addEventListener('click', async () => {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                await auth.signInWithPopup(provider);
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        });
+
+        // Logout
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await auth.signOut();
+                showToast('Logged out successfully');
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        });
+
+        // Modal Controls
+        addVideoBtn.addEventListener('click', () => {
+            uploadModal.classList.add('active');
+        });
+
+        function closeModal() {
+            uploadModal.classList.remove('active');
+            uploadForm.reset();
+        }
+
+        // Handle video upload
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!auth.currentUser) {
+                showToast('Please login to upload videos', 'error');
+                return;
+            }
+
+            const title = document.getElementById('video-title').value;
+            const description = document.getElementById('video-description').value;
+            const embedUrl = document.getElementById('video-embed-url').value;
+            const category = document.getElementById('video-category').value;
+            const thumbnailFile = document.getElementById('video-thumbnail').files[0];
+
+            try {
+                let thumbnailUrl = '/api/placeholder/400/225';
+
+                if (thumbnailFile) {
+                    const thumbnailRef = storage.ref(`thumbnails/${Date.now()}_${thumbnailFile.name}`);
+                    await thumbnailRef.put(thumbnailFile);
+                    thumbnailUrl = await thumbnailRef.getDownloadURL();
+                }
+
+                await db.collection('videos').add({
+                    title,
+                    description,
+                    embedUrl,
+                    category,
+                    thumbnailUrl,
+                    userId: auth.currentUser.uid,
+                    userName: auth.currentUser.displayName,
+                    userAvatar: auth.currentUser.photoURL,
+                    likes: 0,
+                    views: 0,
+                    comments: [],
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                closeModal();
+                showToast('Video uploaded successfully');
+                loadVideos();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        });
+
+        // Load videos with infinite scroll
+        let lastDoc = null;
+        let loading = false;
+        const BATCH_SIZE = 12;
+
+        async function loadVideos(append = false) {
+            if (loading) return;
+            loading = true;
+
+            try {
+                let query = db.collection('videos')
+                    .orderBy('timestamp', 'desc')
+                    .limit(BATCH_SIZE);
+
+                if (lastDoc && append) {
+                    query = query.startAfter(lastDoc);
+                }
+
+                const snapshot = await query.get();
+                
+                if (!append) {
+                    videoGrid.innerHTML = '';
+                }
+
+                snapshot.forEach(doc => {
+                    const video = doc.data();
+                    const videoCard = createVideoCard(doc.id, video);
+                    videoGrid.insertAdjacentHTML('beforeend', videoCard);
+                });
+
+                lastDoc = snapshot.docs[snapshot.docs.length - 1];
+                
+                if (snapshot.empty && !append) {
+                    videoGrid.innerHTML = '<p class="no-results">No videos found</p>';
+                }
+
+                addVideoInteractionListeners();
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                loading = false;
+            }
+        }
+
+        // Infinite scroll
+        window.addEventListener('scroll', () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000) {
+                loadVideos(true);
+            }
+        });
+
+        // Create video card HTML
+        function createVideoCard(videoId, video) {
+            const timeSince = getTimeSince(video.timestamp?.toDate());
+            
+            return `
+                <div class="video-card" data-video-id="${videoId}">
+                    <div class="video-thumbnail">
+                        <img src="${video.thumbnailUrl}" alt="${video.title}">
+                        <span class="video-duration">12:34</span>
+                    </div>
+                    <div class="video-info">
+                        <h3 class="video-title">${video.title}</h3>
+                        <div class="video-meta">
+                            <img src="${video.userAvatar || '/api/placeholder/32/32'}" alt="${video.userName}" class="author-avatar">
+                            <div>
+                                <div class="video-author">${video.userName}</div>
+                                <div class="video-date">${timeSince}</div>
+                            </div>
+                        </div>
+                        <div class="video-stats">
+                            <div class="stat">
+                                <i class="fas fa-eye"></i>
+                                <span>${formatNumber(video.views)} views</span>
+                            </div>
+                            <div class="stat like-button" data-video-id="${videoId}">
+                                <i class="fas fa-heart"></i>
+                                <span>${formatNumber(video.likes)}</span>
+                            </div>
+                            <div class="stat">
+                                <i class="fas fa-comment"></i>
+                                <span>${video.comments?.length || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Format numbers (e.g., 1.5K, 1.2M)
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            }
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
+            }
+            return num;
+        }
+
+        // Get time since post
+        function getTimeSince(date) {
+            if (!date) return '';
+
+            const seconds = Math.floor((new Date() - date) / 1000);
+            
+            const intervals = {
+                year: 31536000,
+                month: 2592000,
+                week: 604800,
+                day: 86400,
+                hour: 3600,
+                minute: 60
+            };
+
+            for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+                const interval = Math.floor(seconds / secondsInUnit);
+                if (interval >= 1) {
+                    return `${interval} ${unit}${interval === 1 ? '' : 's'} ago`;
+                }
+            }
+
+            return 'Just now';
+        }
+
+        // Add interaction listeners to video cards
+        function addVideoInteractionListeners() {
+            document.querySelectorAll('.like-button').forEach(button => {
+                button.addEventListener('click', async () => {
+                    if (!auth.currentUser) {
+                        showToast('Please login to like videos', 'error');
+                        return;
+                    }
+
+                    const videoId = button.dataset.videoId;
+                    const videoRef = db.collection('videos').doc(videoId);
+                    
+                    try {
+                        await db.runTransaction(async (transaction) => {
+                            const videoDoc = await transaction.get(videoRef);
+                            const newLikes = (videoDoc.data().likes || 0) + 1;
+                            transaction.update(videoRef, { likes: newLikes });
+                        });
+                        showToast('Video liked!');
+                    } catch (error) {
+                        showToast(error.message, 'error');
+                    }
+                });
+            });
+        }
+
+        // Search functionality with debounce
+        let searchTimeout;
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                
+                if (searchTerm.length === 0) {
+                    lastDoc = null;
+                    loadVideos();
+                    return;
+                }
+
+                try {
+                    const snapshot = await db.collection('videos')
+                        .where('title', '>=', searchTerm)
+                        .where('title', '<=', searchTerm + '\uf8ff')
+                        .limit(BATCH_SIZE)
+                        .get();
+
+                    videoGrid.innerHTML = '';
+
+                    if (snapshot.empty) {
+                        videoGrid.innerHTML = `
+                            <div class="no-results">
+                                <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                                <p>No videos found for "${searchTerm}"</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    snapshot.forEach(doc => {
+                        const video = doc.data();
+                        const videoCard = createVideoCard(doc.id, video);
+                        videoGrid.insertAdjacentHTML('beforeend', videoCard);
+                    });
+
+                    addVideoInteractionListeners();
+                } catch (error) {
+                    showToast(error.message, 'error');
+                }
+            }, 300);
+        });
+
+        // Category filtering
+        categoryTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                categoryTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                const category = tab.textContent.toLowerCase();
+                filterVideosByCategory(category);
+            });
+        });
+
+        async function filterVideosByCategory(category) {
+            try {
+                let query = db.collection('videos')
+                    .orderBy('timestamp', 'desc')
+                    .limit(BATCH_SIZE);
+
+                if (category !== 'all') {
+                    query = query.where('category', '==', category);
+                }
+
+                const snapshot = await query.get();
+                videoGrid.innerHTML = '';
+
+                if (snapshot.empty) {
+                    videoGrid.innerHTML = `
+                        <div class="no-results">
+                            <i class="fas fa-folder-open" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                            <p>No videos in the ${category} category</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const video = doc.data();
+                    const videoCard = createVideoCard(doc.id, video);
+                    videoGrid.insertAdjacentHTML('beforeend', videoCard);
+                });
+
+                lastDoc = snapshot.docs[snapshot.docs.length - 1];
+                addVideoInteractionListeners();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // Mobile sidebar toggle
+        const sidebarToggle = document.createElement('button');
+        sidebarToggle.className = 'button button-secondary sidebar-toggle';
+        sidebarToggle.innerHTML = '<i class="fas fa-bars"></i>';
+        document.querySelector('.header-content').insertBefore(sidebarToggle, document.querySelector('.search-bar'));
+
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 1024 && 
+                !sidebar.contains(e.target) && 
+                !sidebarToggle.contains(e.target) && 
+                sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        // View counter
+        async function incrementViewCount(videoId) {
+            const videoRef = db.collection('videos').doc(videoId);
+            try {
+                await db.runTransaction(async (transaction) => {
+                    const videoDoc = await transaction.get(videoRef);
+                    const newViews = (videoDoc.data().views || 0) + 1;
+                    transaction.update(videoRef, { views: newViews });
+                });
+            } catch (error) {
+                console.error('Error incrementing view count:', error);
+            }
+        }
+
+        // Video click handler
+        videoGrid.addEventListener('click', (e) => {
+            const videoCard = e.target.closest('.video-card');
+            if (videoCard && !e.target.closest('.like-button')) {
+                const videoId = videoCard.dataset.videoId;
+                incrementViewCount(videoId);
+                // You could implement a modal or redirect to a video player page here
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && uploadModal.classList.contains('active')) {
+                closeModal();
+            }
+            if (e.key === '/' && document.activeElement !== searchInput) {
+                e.preventDefault();
+                searchInput.focus();
+            }
+        });
+
+        // Initialize the app
+        window.addEventListener('DOMContentLoaded', () => {
+            loadVideos();
+            
+            // Check for deep linking
+            const urlParams = new URLSearchParams(window.location.search);
+            const categoryParam = urlParams.get('category');
+            if (categoryParam) {
+                const categoryTab = Array.from(categoryTabs)
+                    .find(tab => tab.textContent.toLowerCase() === categoryParam.toLowerCase());
+                if (categoryTab) {
+                    categoryTab.click();
+                }
+            }
+        });
+
+        // Handle network status
+        window.addEventListener('online', () => {
+            showToast('Back online!');
+            loadVideos();
+        });
+
+        window.addEventListener('offline', () => {
+            showToast('You are offline. Some features may be unavailable.', 'error');
+        });
+
+        // Save scroll position for category tabs
+        const categoryTabsContainer = document.querySelector('.category-filters');
+        let scrollPosition = 0;
+
+        categoryTabsContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            categoryTabsContainer.scrollLeft += e.deltaY;
+            scrollPosition = categoryTabsContainer.scrollLeft;
+        });
+
+        // Restore scroll position on page load
+        categoryTabsContainer.scrollLeft = scrollPosition;
+
+                window.addEventListener('error', function(e) {
+            console.error(e);
+            showToast('An error occurred. Please try again.', 'error');
+        });
+
+        // Initialize the app with loading skeletons
+        function showLoadingSkeletons() {
+            const skeletons = Array(12).fill().map(() => `
+                <div class="skeleton-card">
+                    <div class="skeleton-thumbnail skeleton"></div>
+                    <div class="skeleton-info">
+                        <div class="skeleton-title skeleton"></div>
+                        <div class="skeleton-meta skeleton"></div>
+                    </div>
+                </div>
+            `).join('');
+            
+            videoGrid.innerHTML = skeletons;
+        }
+
+        // Enhanced initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            showLoadingSkeletons();
+            loadVideos();
+            
+            // Check for shared video ID in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const videoId = urlParams.get('v');
+            if (videoId) {
+                openVideoById(videoId);
+            }
+        });
+
+        // Video sharing functionality
+        function shareVideo(videoId) {
+            const shareUrl = `${window.location.origin}${window.location.pathname}?v=${videoId}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Check out this video',
+                    url: shareUrl
+                }).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(shareUrl)
+                    .then(() => showToast('Link copied to clipboard'))
+                    .catch(error => showToast(error.message, 'error'));
+            }
+        }
+    </script>
+</body>
+</html>
